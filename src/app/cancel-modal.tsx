@@ -1,6 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
+
+const HERO_SRC = '/empire-state.jpg';
 
 type StartResp = {
     subscriptionId: string;
@@ -33,13 +36,12 @@ export default function CancelModal({
     const [offerCents, setOfferCents] = useState<number | null>(null);
     const [finalStatus, setFinalStatus] = useState<'active' | 'cancelled' | null>(null);
 
-    // NEW: toast state
+    // toast for 404/500
     const [toast, setToast] = useState<{ message: string; visible: boolean }>({
         message: '',
         visible: false,
     });
 
-    // Start flow when opened: mark pending; DO NOT assign variant here
     useEffect(() => {
         if (!open) return;
 
@@ -56,9 +58,7 @@ export default function CancelModal({
             setLoading(true);
             const res = await fetch('/api/cancel/start', { method: 'POST' });
 
-            // Handle "no active subscription"
             if (res.status === 404) {
-                console.log(res)
                 setLoading(false);
                 setToast({ message: "You don't have an active subscription", visible: true });
                 setTimeout(() => {
@@ -67,16 +67,12 @@ export default function CancelModal({
                 }, 1500);
                 return;
             }
-
-            // Handle other failures
-            if (!cancelled && !res.ok) {
+            if (!res.ok) {
                 setLoading(false);
                 setToast({ message: 'Something went wrong. Please try again.', visible: true });
                 setTimeout(() => {
-                    if (!cancelled) {
-                        setToast({ message: '', visible: false });
-                        onClose();
-                    }
+                    setToast({ message: '', visible: false });
+                    onClose();
                 }, 2200);
                 return;
             }
@@ -95,7 +91,7 @@ export default function CancelModal({
 
     if (!open) return null;
 
-    // Called only when user said "Not yet — I'm still looking"
+    // only assign variant when “Not yet” selected
     const ensureVariant = async () => {
         if (!start) return null;
         if (start.variant) {
@@ -152,11 +148,11 @@ export default function CancelModal({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div className="relative w-full max-w-3xl rounded-2xl bg-white p-4 md:p-6 shadow-xl">
-                {/* TOAST (top-right) */}
+            <div className="relative w-full max-w-[980px] rounded-[18px] bg-white shadow-2xl ring-1 ring-black/5">
+                {/* toast */}
                 {toast.visible && (
                     <div
-                        className="pointer-events-none absolute right-4 top-4 z-50 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm text-red-700 shadow-md"
+                        className="pointer-events-none absolute right-4 top-4 z-50 rounded-md border border-red-200 bg-white px-3 py-2 text-sm text-red-700 shadow"
                         role="status"
                         aria-live="polite"
                     >
@@ -164,142 +160,215 @@ export default function CancelModal({
                     </div>
                 )}
 
-                {/* Header */}
-                <div className="mb-4 flex items-center justify-between">
-                    <div className="text-sm text-slate-500">Subscription Cancellation</div>
-                    <button onClick={onClose} className="rounded-md px-2 py-1 hover:bg-slate-100">
-                        ✕
+                {/* header bar */}
+                <div className="relative flex items-center justify-between px-6 py-4">
+                    <div className="w-full text-left md:text-center text-[14px] font-semibold tracking-normal text-slate-600">
+                        Subscription Cancellation
+                    </div>
+
+                    <button
+                        onClick={onClose}
+                        aria-label="Close"
+                        className="absolute right-4 top-3 inline-flex items-center justify-center
+                                    h-10 w-10 md:h-8 md:w-8
+                                    rounded-full
+                                    text-slate-400 hover:text-slate-400 hover:bg-slate-50
+                                    text-[28px] md:text-[20px] leading-none"
+                    >
+                        ×
                     </button>
                 </div>
 
-                {/* When showing a toast due to 404/500, hide the body to avoid flashing the flow */}
+
+                {/* thin divider under header */}
+                <div className="h-px w-full bg-slate-200/70" />
+
+                {/* body */}
                 {toast.visible ? null : (
                     <>
-                        {/* Body */}
-                        {loading && <div className="p-8 text-center">Loading…</div>}
+                        {loading && <div className="p-10 text-center text-slate-600">Loading…</div>}
 
                         {!loading && step === 'intro' && (
-                            <div className="grid gap-6 md:grid-cols-2">
-                                <div className="space-y-3">
-                                    <h2 className="text-2xl font-semibold leading-tight md:text-3xl">
-                                        Hey mate, quick one before you go.
-                                        <br />
-                                        <span className="font-bold">Have you found a job yet?</span>
-                                    </h2>
-                                    <p className="text-slate-600">Whatever your answer, we’ll help you take the next step.</p>
-                                    <div className="space-y-3 pt-2">
-                                        <button onClick={() => handleIntro(true)} className="w-full rounded-xl border px-4 py-3 text-left hover:bg-slate-50">
-                                            Yes, I’ve found a job
-                                        </button>
-                                        <button onClick={() => handleIntro(false)} className="w-full rounded-xl border px-4 py-3 text-left hover:bg-slate-50">
-                                            Not yet — I’m still looking
-                                        </button>
-                                    </div>
+                            <div className="antialiased grid grid-cols-1 gap-2 px-6 pb-6 pt-6 md:grid-cols-[1fr_440px] md:gap-10 md:px-8 md:pb-8">                                {/* image FIRST on mobile, right column on desktop */}
+                                <div className="order-1 overflow-hidden rounded-[14px] bg-white ring-1 ring-black/5 shadow-[0_10px_24px_rgba(2,6,23,0.08)] md:order-2">                                    <div className="relative h-[200px] w-full md:h-[360px]">
+                                    <Image
+                                        src={HERO_SRC}
+                                        alt="New York skyline"
+                                        fill
+                                        sizes="(max-width: 767px) 100vw, 440px"
+                                        priority
+                                        className="object-cover"
+                                    />
+                                    <div className="pointer-events-none absolute inset-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]" />
                                 </div>
-                                <div className="hidden overflow-hidden rounded-xl md:block">
-                                    <img alt="" src="/main.png" className="h-full w-full object-cover" />
+                                </div>
+
+                                {/* text SECOND on mobile, left column on desktop */}
+                                <div className="order-2 flex flex-col md:order-1">
+                                    <div className="space-y-3">
+                                        <h2 className="text-[28px] font-semibold leading-[1.15] text-slate-700 md:text-[32px]">
+                                            Hey mate,
+                                            <br />
+                                            Quick one before you go.
+                                        </h2>
+                                        <p className="text-[26px] italic font-semibold tracking-tight text-slate-700 md:text-[28px]">
+                                            Have you found a job yet?
+                                        </p>
+                                        <p className="max-w-[520px] text-[15px] tracking-normal text-slate-600 font-semibold">
+                                            Whatever your answer, we just want to help you take the next step.
+                                            With visa support, or by hearing how we can do better.
+                                        </p>
+
+                                        <div className="-mx-6 my-2 md:mx-0">
+                                            <div className="block h-[10px] w-full border-t border-slate-200 bg-gradient-to-b from-slate-200/60 to-transparent md:hidden" />
+                                            <div className="hidden h-px w-full bg-slate-200 md:block" />
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            <button
+                                                onClick={() => handleIntro(true)}
+                                                className="w-full rounded-[12px] border border-2 border-slate-200 bg-white px-4 py-[14px] text-center text-[17px] font-semibold text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#8952fc]/30"
+                                            >
+                                                Yes, I’ve found a job
+                                            </button>
+                                            <button
+                                                onClick={() => handleIntro(false)}
+                                                className="w-full rounded-[12px] border border-2 border-slate-200 bg-white px-4 py-[14px] text-center text-[17px] font-semibold text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#8952fc]/30"
+                                            >
+                                                Not yet — I’m still looking
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}
 
+
+                        {/* OFFER STEP (unchanged styles) */}
                         {!loading && step === 'offer' && start && (
-                            <div className="grid gap-6 md:grid-cols-2">
+                            <div className="grid gap-8 px-6 pb-6 pt-6 md:grid-cols-[1fr_440px] md:gap-10 md:px-8 md:pb-8">
                                 <div className="space-y-4">
-                                    <h2 className="text-2xl font-semibold leading-tight md:text-3xl">
+                                    <h2 className="text-[28px] font-semibold leading-[1.15] text-slate-900 md:text-[32px]">
                                         We built this to help you land the job — here’s 50% off until you do.
                                     </h2>
-                                    <div className="rounded-2xl border bg-emerald-50 p-4 md:p-5">
-                                        <div className="text-lg font-semibold md:text-xl">
+                                    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+                                        <div className="text-xl font-semibold">
                                             {formatCents(offerCents ?? Math.max(0, start.priceCents - 1000))}
                                             <span className="text-sm text-slate-500"> /month</span>
-                                            <span className="ml-2 text-sm text-slate-400 line-through">{formatCents(start.priceCents)}</span>
+                                            <span className="ml-2 text-sm text-slate-400 line-through">
+                                                {formatCents(start.priceCents)}
+                                            </span>
                                         </div>
                                         <p className="mt-1 text-xs text-slate-600">You won’t be charged until your next billing date.</p>
                                     </div>
                                     <div className="flex gap-3 pt-2">
-                                        <button onClick={() => decide(true)} className="flex-1 rounded-xl bg-emerald-500 py-3 font-medium text-white hover:bg-emerald-600">
+                                        <button
+                                            onClick={() => decide(true)}
+                                            className="flex-1 rounded-xl bg-emerald-500 py-3 font-medium text-white hover:bg-emerald-600"
+                                        >
                                             Get 50% off
                                         </button>
-                                        <button onClick={() => setStep('survey')} className="flex-1 rounded-xl border py-3 hover:bg-slate-50">
+                                        <button
+                                            onClick={() => setStep('survey')}
+                                            className="flex-1 rounded-xl border border-slate-200 py-3 hover:bg-slate-50"
+                                        >
                                             No thanks
                                         </button>
                                     </div>
                                 </div>
-                                <div className="hidden overflow-hidden rounded-xl md:block">
-                                    <img alt="" src="/main.png" className="h-full w-full object-cover" />
+                                <div className="hidden overflow-hidden rounded-[14px] border border-slate-200 md:block">
+                                    <div className="relative h-[360px] w-full">
+                                        <Image src={HERO_SRC} alt="" fill sizes="(min-width: 768px) 440px, 100vw" className="object-cover" />
+                                    </div>
                                 </div>
                             </div>
                         )}
 
-                        {/* Found-job branch: visual-only survey, nothing persisted */}
+                        {/* FOUND JOB STEP (visual only) */}
                         {!loading && step === 'foundJob' && (
-                            <div className="grid gap-6 md:grid-cols-2">
+                            <div className="grid gap-8 px-6 pb-6 pt-6 md:grid-cols-[1fr_440px] md:gap-10 md:px-8 md:pb-8">
                                 <div className="space-y-4">
-                                    <h2 className="text-2xl font-semibold leading-tight md:text-3xl">Congrats on the new role! 🎉</h2>
+                                    <h2 className="text-[28px] font-semibold leading-[1.15] text-slate-900 md:text-[32px]">
+                                        Congrats on the new role! 🎉
+                                    </h2>
+                                    {/* Faux fields for parity */}
                                     <div className="space-y-3">
                                         <label className="mb-1 block text-sm text-slate-600">Did you find this job with MigrateMate?*</label>
                                         <div className="grid grid-cols-2 gap-2">
-                                            <button className="rounded-xl border px-4 py-2 hover:bg-slate-50">Yes</button>
-                                            <button className="rounded-xl border px-4 py-2 hover:bg-slate-50">No</button>
+                                            <button className="rounded-xl border border-slate-200 px-4 py-2 hover:bg-slate-50">Yes</button>
+                                            <button className="rounded-xl border border-slate-200 px-4 py-2 hover:bg-slate-50">No</button>
                                         </div>
-                                        {['How many roles did you apply for through MigrateMate?', 'How many companies did you email directly?', 'How many different companies did you interview with?'].map(
-                                            (q) => (
+                                        {['How many roles did you apply for through MigrateMate?',
+                                            'How many companies did you email directly?',
+                                            'How many different companies did you interview with?'].map((q) => (
                                                 <div key={q}>
                                                     <label className="mb-1 block text-sm text-slate-600">{q}*</label>
                                                     <div className="grid grid-cols-4 gap-2">
                                                         {['0', '1–5', '6–20', '20+'].map((opt) => (
-                                                            <button key={opt} className="rounded-xl border px-3 py-2 hover:bg-slate-50">
-                                                                {opt}
-                                                            </button>
+                                                            <button key={opt} className="rounded-xl border border-slate-200 px-3 py-2 hover:bg-slate-50">{opt}</button>
                                                         ))}
                                                     </div>
                                                 </div>
-                                            ),
-                                        )}
+                                            ))}
                                     </div>
-                                    <button onClick={() => decide(false)} className="w-full rounded-xl bg-slate-900 py-3 font-medium text-white hover:bg-slate-800">
+                                    <button
+                                        onClick={() => decide(false)}
+                                        className="w-full rounded-xl bg-slate-900 py-3 font-medium text-white hover:bg-slate-800"
+                                    >
                                         Continue
                                     </button>
                                 </div>
-                                <div className="hidden overflow-hidden rounded-xl md:block">
-                                    <img alt="" src="/main.png" className="h-full w-full object-cover" />
+                                <div className="hidden overflow-hidden rounded-[14px] border border-slate-200 md:block">
+                                    <div className="relative h-[360px] w-full">
+                                        <Image src={HERO_SRC} alt="" fill sizes="(min-width: 768px) 440px, 100vw" className="object-cover" />
+                                    </div>
                                 </div>
                             </div>
                         )}
 
-                        {/* Generic survey for other paths (A or B declined) */}
+                        {/* SURVEY STEP */}
                         {!loading && step === 'survey' && (
-                            <div className="grid gap-6 md:grid-cols-2">
+                            <div className="grid gap-8 px-6 pb-6 pt-6 md:grid-cols-[1fr_440px] md:gap-10 md:px-8 md:pb-8">
                                 <div className="space-y-3">
-                                    <h2 className="text-2xl font-semibold leading-tight md:text-3xl">Tell us why you’re leaving</h2>
+                                    <h2 className="text-[28px] font-semibold leading-[1.15] text-slate-900 md:text-[32px]">
+                                        Tell us why you’re leaving
+                                    </h2>
                                     <textarea
-                                        className="min-h-[120px] w-full rounded-xl border p-3"
+                                        className="min-h-[120px] w-full rounded-xl border border-slate-200 p-3"
                                         placeholder="Optional: your reason (we’ll use this to improve)"
                                         maxLength={500}
                                         value={reason}
                                         onChange={(e) => setReason(e.target.value)}
                                     />
                                     <div className="flex gap-3">
-                                        <button onClick={() => decide(false)} className="flex-1 rounded-xl bg-red-500 py-3 font-medium text-white hover:bg-red-600">
+                                        <button
+                                            onClick={() => decide(false)}
+                                            className="flex-1 rounded-xl bg-red-500 py-3 font-medium text-white hover:bg-red-600"
+                                        >
                                             Confirm cancellation
                                         </button>
                                     </div>
                                 </div>
-                                <div className="hidden overflow-hidden rounded-xl md:block">
-                                    <img alt="" src="/main.png" className="h-full w-full object-cover" />
+                                <div className="hidden overflow-hidden rounded-[14px] border border-slate-200 md:block">
+                                    <div className="relative h-[360px] w-full">
+                                        <Image src={HERO_SRC} alt="" fill sizes="(min-width: 768px) 440px, 100vw" className="object-cover" />
+                                    </div>
                                 </div>
                             </div>
                         )}
 
+                        {/* DONE */}
                         {!loading && step === 'done' && (
-                            <div className="space-y-3 p-8 text-center">
-                                <h3 className="text-xl font-semibold">{finalStatus === 'active' ? 'Discount applied' : 'All set'}</h3>
+                            <div className="space-y-3 p-10 text-center">
+                                <h3 className="text-xl font-semibold">
+                                    {finalStatus === 'active' ? 'Discount applied' : 'All set'}
+                                </h3>
                                 <p className="text-slate-600">
                                     {finalStatus === 'active'
                                         ? 'You kept your subscription and we’ve applied your selection.'
                                         : 'We’ve saved your choice. You can close this window.'}
                                 </p>
-                                <button onClick={onClose} className="rounded-xl border px-4 py-2 hover:bg-slate-50">
+                                <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 hover:bg-slate-50">
                                     Close
                                 </button>
                             </div>
