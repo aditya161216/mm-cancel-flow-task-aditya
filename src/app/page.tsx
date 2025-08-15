@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import CancelModal from './cancel-modal';
+import CancelFlow from './components/cancel-flow/CancelFlow';
 
 // Mock user data for UI display
 const mockUser = {
@@ -267,7 +267,7 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
-      <CancelModal open={cancelOpen} onClose={() => { setCancelOpen(false) }} />
+      {cancelOpen && <CancelFlow open={cancelOpen} onClose={() => setCancelOpen(false)} />}
     </div>
   );
 }
