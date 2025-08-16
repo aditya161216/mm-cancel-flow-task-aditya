@@ -25,11 +25,6 @@ export default function OfferModal({
     onDecline: () => void;
 }) {
 
-    useEffect(() => {
-        console.log("Offer modal")
-    })
-
-
     return (
         <BaseModal open={open} title="Subscription Cancellation" onClose={onClose} onBack={onBack} progress={{ current: 1, total: 3 }}>
             <div className="grid gap-8 px-6 pb-6 pt-6 md:grid-cols-[1fr_440px] md:gap-10 md:px-8 md:pb-8">

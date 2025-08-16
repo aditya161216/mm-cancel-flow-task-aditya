@@ -21,11 +21,6 @@ export default function IntroModal({
 }) {
 
 
-    useEffect(() => {
-        console.log("Intro modal")
-    })
-
-
     return (
         <BaseModal open={open} title="Subscription Cancellation" onClose={onClose}>
             {loading ? (

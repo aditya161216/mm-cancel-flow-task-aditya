@@ -50,7 +50,7 @@ export default function BaseModal({
 
                             {progress && (
                                 <div className="mt-1 flex items-center gap-2">
-                                    <StepDots current={progress.current} total={progress.total} />
+                                    <StepDots current={progress.current} total={progress.total} done={progress.done} />
                                     <span className="text-[12px] text-slate-400">
                                         {progress.done ? 'Completed' : `Step ${progress.current} of ${progress.total}`}
                                     </span>
@@ -91,9 +91,9 @@ export default function BaseModal({
                             <span className="whitespace-nowrap">{title}</span>
                             {progress && (
                                 <div className="flex items-center gap-2">
-                                    <StepDots current={progress.current} total={progress.total} />
+                                    <StepDots current={progress.current} total={progress.total} done={progress.done} />
                                     <span className="text-[12px] font-normal text-slate-400">
-                                        Step {progress.current} of {progress.total}
+                                        {progress.done ? 'Completed' : `Step ${progress.current} of ${progress.total}`}
                                     </span>
                                 </div>
                             )}

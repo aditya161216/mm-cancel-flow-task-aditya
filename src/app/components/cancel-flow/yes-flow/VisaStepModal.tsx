@@ -10,8 +10,8 @@ export default function VisaStepModal({
     open,
     onClose,
     onBack,
-    foundWithMM,               // from step 1
-    onComplete,                // (needsHelp: boolean)
+    foundWithMM,
+    onComplete,           // (needsHelp: boolean)
     stepCurrent,
     stepTotal,
 }: {
@@ -25,15 +25,29 @@ export default function VisaStepModal({
 }) {
     const [hasLawyer, setHasLawyer] = useState<boolean | null>(null);
     const [visa, setVisa] = useState('');
+    const [showErrors, setShowErrors] = useState(false);
 
     useEffect(() => {
         if (!open) {
             setHasLawyer(null);
             setVisa('');
+            setShowErrors(false);
         }
     }, [open]);
 
     const ready = hasLawyer !== null && visa.trim().length > 0;
+
+    const needHasLawyer = showErrors && hasLawyer === null;
+    const needVisa = showErrors && visa.trim().length === 0;
+
+    const handleSubmit = () => {
+        if (!ready) {
+            setShowErrors(true);
+            return;
+        }
+        // needsHelp = !hasLawyer
+        onComplete(!hasLawyer!);
+    };
 
     return (
         <BaseModal
@@ -44,65 +58,110 @@ export default function VisaStepModal({
             progress={{ current: stepCurrent, total: stepTotal }}
         >
             <div className="grid gap-8 px-6 pb-6 pt-6 md:grid-cols-[1fr_440px] md:gap-10 md:px-8 md:pb-8">
+                {/* LEFT */}
                 <div className="space-y-5">
                     <div>
                         <h2 className="text-[28px] md:text-[32px] font-semibold leading-[1.15] text-slate-900">
-                            {foundWithMM ? 'We helped you land the job, now let’s help you secure your visa.' : 'You landed the job! That’s what we live for.'}
+                            {foundWithMM
+                                ? 'We helped you land the job, now let’s help you secure your visa.'
+                                : 'You landed the job! That’s what we live for.'}
                         </h2>
                         {!foundWithMM && (
-                            <p className="text-slate-600">Even if it wasn’t through MigrateMate, let us help get your visa sorted.</p>
+                            <p className="text-slate-600">
+                                Even if it wasn’t through MigrateMate, let us help get your visa sorted.
+                            </p>
                         )}
                     </div>
 
+                    {/* Top helper when user tries too soon */}
+                    {showErrors && !ready && (
+                        <div className="text-[13px] leading-5 text-red-600">
+                            Please complete all required fields<span className="ml-0.5">*</span>
+                        </div>
+                    )}
+
+                    {/* Lawyer radios */}
                     <div className="space-y-2">
                         <div className="text-[14px] font-medium text-slate-700">
-                            Is your company providing an immigration lawyer to help with your visa?
+                            Is your company providing an immigration lawyer to help with your visa?*
                         </div>
                         <div className="space-y-2">
                             <label className="flex items-center gap-2">
-                                <input type="radio" checked={hasLawyer === true} onChange={() => setHasLawyer(true)} />
+                                <input
+                                    type="radio"
+                                    checked={hasLawyer === true}
+                                    onChange={() => setHasLawyer(true)}
+                                />
                                 <span>Yes</span>
                             </label>
                             <label className="flex items-center gap-2">
-                                <input type="radio" checked={hasLawyer === false} onChange={() => setHasLawyer(false)} />
+                                <input
+                                    type="radio"
+                                    checked={hasLawyer === false}
+                                    onChange={() => setHasLawyer(false)}
+                                />
                                 <span>No</span>
                             </label>
                         </div>
+                        {needHasLawyer && (
+                            <div className="text-[12px] text-red-600">Please select Yes or No.</div>
+                        )}
                     </div>
 
+                    {/* Visa input (shown once a radio is chosen) */}
                     {hasLawyer !== null && (
                         <div className="space-y-2">
                             <div className="text-[14px] font-medium text-slate-700">
                                 {hasLawyer
                                     ? 'What visa will you be applying for?*'
-                                    : "We can connect you with one of our trusted partners. Which visa would you like to apply for?*"}
+                                    : 'We can connect you with one of our trusted partners. Which visa would you like to apply for?*'}
                             </div>
                             <input
-                                className="w-full max-w-[620px] rounded-lg border border-slate-300 bg-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-[#8952fc]/30"
+                                className={[
+                                    'w-full max-w-[620px] rounded-lg border bg-white px-3 py-2.5 outline-none',
+                                    needVisa
+                                        ? 'border-red-400 focus:ring-2 focus:ring-red-200'
+                                        : 'border-slate-300 focus:ring-2 focus:ring-[#8952fc]/30',
+                                ].join(' ')}
                                 value={visa}
                                 onChange={(e) => setVisa(e.target.value)}
-                                placeholder=""
+                                aria-invalid={needVisa}
                             />
+                            {needVisa && (
+                                <div className="text-[12px] text-red-600">This field is required.</div>
+                            )}
                         </div>
                     )}
 
+                    {/* divider */}
                     <div className="-mx-6 my-1 md:mx-0">
                         <div className="block h-[10px] w-full border-t border-slate-200 bg-gradient-to-b from-slate-200/60 to-transparent md:hidden" />
                         <div className="hidden h-px w-full bg-slate-200 md:block" />
                     </div>
 
+                    {/* Submit – always clickable so we can show errors */}
                     <button
-                        disabled={!ready}
-                        onClick={() => hasLawyer !== null && onComplete(!hasLawyer)} // needsHelp = !hasLawyer
-                        className={`w-full rounded-xl py-3 font-medium ${ready ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-slate-100 text-slate-400'}`}
+                        onClick={handleSubmit}
+                        className={[
+                            'w-full rounded-xl py-3 font-medium',
+                            ready ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-slate-100 text-slate-400',
+                        ].join(' ')}
                     >
                         Complete cancellation
                     </button>
                 </div>
 
+                {/* RIGHT image */}
                 <div className="hidden overflow-hidden rounded-[14px] border border-slate-200 md:block">
                     <div className="relative h-[360px] w-full">
-                        <Image src={HERO_SRC} alt="New York skyline" fill sizes="(min-width: 768px) 440px, 100vw" className="object-cover" priority />
+                        <Image
+                            src={HERO_SRC}
+                            alt="New York skyline"
+                            fill
+                            sizes="(min-width: 768px) 440px, 100vw"
+                            className="object-cover"
+                            priority
+                        />
                         <div className="pointer-events-none absolute inset-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]" />
                     </div>
                 </div>

@@ -22,6 +22,7 @@ export default function JobImproveModal({
     stepTotal: number;
 }) {
     const [val, setVal] = useState('');
+    const [showErrors, setShowErrors] = useState(false);
 
     useEffect(() => {
         if (!open) setVal('');
@@ -46,7 +47,7 @@ export default function JobImproveModal({
                         We’re always looking to improve; your thoughts can help us make Migrate Mate more useful for others.*
                     </p>
 
-                    {!ok && val.length > 0 && (
+                    {((!ok && val.length > 0)) && (
                         <div className="text-[13px] text-red-600">Min 25 characters so we can understand your feedback*</div>
                     )}
 
@@ -59,7 +60,7 @@ export default function JobImproveModal({
                             placeholder=""
                         />
                         <div className={`absolute bottom-2 right-3 text-[11px] ${ok ? 'text-slate-400' : 'text-slate-400'}`}>
-                            Min 25 characters ({Math.min(val.trim().length, 25)}/25)
+                            Min 25 characters ({val.trim().length}/25)
                         </div>
                     </div>
 

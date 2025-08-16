@@ -12,13 +12,6 @@ export default function CancelledModal({
 }) {
 
 
-
-    useEffect(() => {
-        console.log("Cancelled modal")
-    })
-
-
-
     return (
         <BaseModal open={open} title="Subscription Cancellation" onClose={onClose}>
             <div className="space-y-3 p-10 text-center">
