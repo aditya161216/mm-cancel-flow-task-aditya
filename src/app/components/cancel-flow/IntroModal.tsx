@@ -72,7 +72,7 @@ export default function IntroModal({
                                     onClick={onNotYet}
                                     className="w-full rounded-[12px] border border-2 border-slate-200 bg-white px-4 py-[14px] text-center text-[17px] font-semibold text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#8952fc]/30"
                                 >
-                                    Not yet — I’m still looking
+                                    Not yet - I’m still looking
                                 </button>
                             </div>
                         </div>

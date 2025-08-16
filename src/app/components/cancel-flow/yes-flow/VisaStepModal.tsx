@@ -1,3 +1,4 @@
+// yes-flow/VisaStepModal.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -10,8 +11,8 @@ export default function VisaStepModal({
     open,
     onClose,
     onBack,
-    foundWithMM,
-    onComplete,           // (needsHelp: boolean)
+    foundWithMM,              // from step 1
+    onComplete,               // (needsHelp: boolean)
     stepCurrent,
     stepTotal,
 }: {
@@ -45,9 +46,16 @@ export default function VisaStepModal({
             setShowErrors(true);
             return;
         }
-        // needsHelp = !hasLawyer
-        onComplete(!hasLawyer!);
+        // needsHelp = user does NOT have a company-provided lawyer
+        onComplete(!hasLawyer);
     };
+
+    const OPTIONS = [
+        { val: true, label: 'Yes' },
+        { val: false, label: 'No' },
+    ];
+    const optionsToShow =
+        hasLawyer === null ? OPTIONS : OPTIONS.filter((o) => o.val === hasLawyer);
 
     return (
         <BaseModal
@@ -68,7 +76,8 @@ export default function VisaStepModal({
                         </h2>
                         {!foundWithMM && (
                             <p className="text-slate-600">
-                                Even if it wasn’t through MigrateMate, let us help get your visa sorted.
+                                Even if it wasn’t through MigrateMate, let us help get your visa
+                                sorted.
                             </p>
                         )}
                     </div>
@@ -80,35 +89,30 @@ export default function VisaStepModal({
                         </div>
                     )}
 
-                    {/* Lawyer radios */}
+                    {/* Lawyer radios (collapse to the chosen one) */}
                     <div className="space-y-2">
                         <div className="text-[14px] font-medium text-slate-700">
-                            Is your company providing an immigration lawyer to help with your visa?*
+                            Is your company providing an immigration lawyer to help with your
+                            visa?*
                         </div>
-                        <div className="space-y-2">
-                            <label className="flex items-center gap-2">
-                                <input
-                                    type="radio"
-                                    checked={hasLawyer === true}
-                                    onChange={() => setHasLawyer(true)}
-                                />
-                                <span>Yes</span>
-                            </label>
-                            <label className="flex items-center gap-2">
-                                <input
-                                    type="radio"
-                                    checked={hasLawyer === false}
-                                    onChange={() => setHasLawyer(false)}
-                                />
-                                <span>No</span>
-                            </label>
+                        <div className="space-y-2 text-slate-700">
+                            {optionsToShow.map((o) => (
+                                <label key={String(o.val)} className="flex items-center gap-2">
+                                    <input
+                                        type="radio"
+                                        checked={hasLawyer === o.val}
+                                        onChange={() => setHasLawyer(o.val)}
+                                    />
+                                    <span>{o.label}</span>
+                                </label>
+                            ))}
                         </div>
                         {needHasLawyer && (
                             <div className="text-[12px] text-red-600">Please select Yes or No.</div>
                         )}
                     </div>
 
-                    {/* Visa input (shown once a radio is chosen) */}
+                    {/* Visa input (visible once a radio is chosen) */}
                     {hasLawyer !== null && (
                         <div className="space-y-2">
                             <div className="text-[14px] font-medium text-slate-700">
@@ -118,7 +122,7 @@ export default function VisaStepModal({
                             </div>
                             <input
                                 className={[
-                                    'w-full max-w-[620px] rounded-lg border bg-white px-3 py-2.5 outline-none',
+                                    'w-full max-w-[620px] rounded-lg border bg-white px-3 py-2.5 outline-none text-slate-700',
                                     needVisa
                                         ? 'border-red-400 focus:ring-2 focus:ring-red-200'
                                         : 'border-slate-300 focus:ring-2 focus:ring-[#8952fc]/30',

@@ -64,10 +64,6 @@ export default function CancelFlow({
         [offerCents, start]
     );
 
-    useEffect(() => {
-        console.log("Cancel flow")
-    })
-
     // Kick off start flow on open
     useEffect(() => {
         if (!open) return;
@@ -155,13 +151,9 @@ export default function CancelFlow({
         else setShowDeclinedSurvey(true);
     };
 
-    const decide = async (accepted: boolean, reasonOverride?: string) => {
+    const decideNoFlow = async (accepted: boolean, reasonOverride?: string) => {
         if (!start) return;
         setLoading(true);
-        setShowIntro(false);
-        setShowOffer(false);
-        setShowDeclinedSurvey(false);
-        setShowReasons(false)
 
         const res = await fetch('/api/cancel/decide', {
             method: 'POST',
@@ -173,6 +165,7 @@ export default function CancelFlow({
                 reason: accepted ? 'still_looking' : (reasonOverride ?? reason),
             }),
         });
+
         setLoading(false);
         if (!res.ok) {
             setToast({ message: 'Something went wrong. Please try again.', visible: true });
@@ -180,10 +173,42 @@ export default function CancelFlow({
             return;
         }
         const { status } = (await res.json()) as DecideResp;
+
+        setShowIntro(false);
+        setShowOffer(false);
+        setShowDeclinedSurvey(false);
+        setShowReasons(false)
+
         if (status === 'active') setShowAccepted(true);
         else setShowCancelled(true);
+    };
 
-
+    const decideYesFlow = async (reasonText: string) => {
+        if (!start) return false;
+        try {
+            setLoading(true);
+            const res = await fetch('/api/cancel/decide', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    subscriptionId: start.subscriptionId,
+                    accepted: false,
+                    reason: reasonText,
+                }),
+            });
+            setLoading(false);
+            if (!res.ok) {
+                setToast({ message: 'Something went wrong. Please try again.', visible: true });
+                setTimeout(() => setToast({ message: '', visible: false }), 1800);
+                return false;
+            }
+            return true;
+        } catch {
+            setLoading(false);
+            setToast({ message: 'Network error. Please try again.', visible: true });
+            setTimeout(() => setToast({ message: '', visible: false }), 1800);
+            return false;
+        }
     };
 
     return (
@@ -215,7 +240,7 @@ export default function CancelFlow({
                     }}
                     priceCents={start.priceCents}
                     offerCents={computedOffer}
-                    onAccept={() => decide(true)}
+                    onAccept={() => decideNoFlow(true)}
                     onDecline={() => {
                         setShowOffer(false);
                         setShowDeclinedSurvey(true);
@@ -235,7 +260,7 @@ export default function CancelFlow({
                     onReason={() => { /* ignore */ }}
                     priceCents={start.priceCents}
                     offerCents={offerCents}
-                    onAcceptOffer={() => decide(true)}
+                    onAcceptOffer={() => decideNoFlow(true)}
                     onContinue={() => {
                         setShowDeclinedSurvey(false);
                         setShowReasons(true);
@@ -256,19 +281,19 @@ export default function CancelFlow({
                     offerCents={offerCents}
                     stepCurrent={start.variant === 'B' ? 3 : 2}
                     stepTotal={start.variant === 'B' ? 3 : 2}
-                    onAcceptOffer={() => { void decide(true); }}
+                    onAcceptOffer={() => { void decideNoFlow(true); }}
                     onComplete={(payload) => {
                         const label = REASON_LABELS[(payload.type as ReasonKey)] ?? payload.type;
                         const explanation = payload.text?.trim();
                         const finalReason = explanation ? `${label} - ${explanation}` : label;
                         setReason(finalReason);
                         setShowReasons(false);      // hide this step immediately
-                        void decide(false, finalReason);         // finish flow
+                        void decideNoFlow(false, finalReason);         // finish flow
                     }}
                 />
             )}
 
-            <AcceptedModal open={showAccepted} onClose={onClose} />
+            <AcceptedModal open={showAccepted} onClose={onClose} offer={computedOffer} />
             <CancelledModal open={showCancelled} onClose={onClose} />
 
             <JobCongratsModal
@@ -299,8 +324,11 @@ export default function CancelFlow({
                     onClose={onClose}
                     onBack={() => { setShowVisaStep(false); setShowJobImprove(true); }}
                     foundWithMM={foundWithMM}
-                    onComplete={(needsHelp) => {
+                    onComplete={async (needsHelp) => {
                         setNeedsVisaHelp(needsHelp);
+                        const reasonText = foundWithMM ? 'found_job_with_migrate_mate' : 'found_job';
+                        const ok = await decideYesFlow(reasonText);
+                        if (!ok) return;
                         setShowVisaStep(false);
                         setShowJobDone(true);
                     }}
