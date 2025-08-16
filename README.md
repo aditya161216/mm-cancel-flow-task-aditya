@@ -2,8 +2,8 @@
 
 ## Architecture decisions
 - **Stack:** Next.js App Router with React Server/Client Components. Supabase (Postgres) for data + RLS.  
-- **Flow composition:** The modal wizard is split into small components under `components/cancel-flow/*`:
-  - `IntroModal → OfferModal/DeclinedSurveyModal → CancelReasonModal → AcceptedModal/CancelledModal`
+- **Flow composition:** The modal wizard is split into small components under `components/cancel-flow/*`, starting at `IntroModal`:
+  - "Not yet found a job" branch: `OfferModal/DeclinedSurveyModal → CancelReasonModal → AcceptedModal/CancelledModal`
   - “Found a job” branch: `JobCongratsModal → JobImproveModal → VisaStepModal → JobDoneModal`
 - **State orchestration:** `CancelFlow.tsx` owns the wizard state (which modal is open), server responses, and toasts. Pricing math (`computedOffer`) is memoized.
 - **Server boundaries:** All mutating endpoints live in **`app/api/cancel/*`**:
