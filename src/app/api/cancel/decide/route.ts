@@ -1,21 +1,44 @@
 // server-only
 import { supabaseAdmin } from '@/lib/supabase';
+import { z } from 'zod';
+import { verifyCsrf } from '../../csrf/server'
+
+const DecideBody = z.object({
+  subscriptionId: z.string().uuid(),
+  accepted: z.boolean(),
+  reason: z.string().trim().max(500).optional(),
+});
+
+// tiny sanitizer: normalize, drop control chars, cap length
+const sanitize = (s: string) =>
+  s.normalize('NFKC').replace(/\p{C}/gu, '').slice(0, 500);
 
 export async function POST(req: Request) {
+  // CSRF check
+  try { await verifyCsrf(); } catch { return new Response('CSRF failed', { status: 403 }); }
+
+  const parsed = DecideBody.safeParse(await req.json());
+  if (!parsed.success) {
+    return Response.json({ error: 'Invalid input', issues: parsed.error.flatten() }, { status: 400 });
+  }
+
+  const { subscriptionId, accepted } = parsed.data;
+  const reason = parsed.data.reason ? sanitize(parsed.data.reason) : undefined;
+
   const sb = supabaseAdmin;
   const userId = process.env.MOCK_USER_ID!;
-  const { subscriptionId, accepted, reason } = (await req.json()) as {
-    subscriptionId: string;
-    accepted: boolean;
-    reason?: string;
-  };
 
-  const updates: Record<string, unknown> = {
-    status: accepted ? 'active' : 'cancelled',
-    updated_at: new Date().toISOString(),
-  };
+  // Ensure the subscription exists and belongs to the user
+  const { data: sub, error: subErr } = await sb
+    .from('subscriptions')
+    .select('id, user_id, monthly_price, status')
+    .eq('id', subscriptionId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (subErr) return Response.json({ error: subErr.message }, { status: 500 });
+  if (!sub)   return new Response('Subscription not found', { status: 404 });
 
-  // Ensure we have a cancellation row; if none (e.g., found-job branch), insert with A
+  // Ensure/record a cancellation row
   const { data: last } = await sb
     .from('cancellations')
     .select('id, downsell_variant')
@@ -33,8 +56,7 @@ export async function POST(req: Request) {
       .insert({
         user_id: userId,
         subscription_id: subscriptionId,
-        // no randomization here; requirement: do not generate variant in the found-job branch
-        downsell_variant: 'A',
+        downsell_variant: 'A', // don’t randomize here, per your requirement
         reason: reason ?? null,
         accepted_downsell: false,
       })
@@ -43,30 +65,26 @@ export async function POST(req: Request) {
     if (insErr) return Response.json({ error: insErr.message }, { status: 500 });
     cancelId = ins!.id;
   } else {
-    await sb
+    const { error: updCanErr } = await sb
       .from('cancellations')
       .update({
-        reason: (reason ?? '').toString().slice(0, 500),
+        reason: reason ?? null,
         accepted_downsell: !!accepted,
       })
       .eq('id', cancelId);
+    if (updCanErr) return Response.json({ error: updCanErr.message }, { status: 500 });
   }
 
-  // if they accepted the downsell, set price to the offer price (current - $10)
+  // Build the subscription update
+  const updates: Record<string, unknown> = {
+    status: accepted ? 'active' : 'cancelled',
+    updated_at: new Date().toISOString(),
+  };
+
+  // If they accepted the downsell, set price to offer (current - $10)
   if (accepted) {
-    const { data: sub, error: subErr } = await sb
-      .from('subscriptions')
-      .select('monthly_price')            // <-- make sure this is the correct column
-      .eq('id', subscriptionId)
-      .eq('user_id', userId)
-      .single();
-
-    if (subErr) return Response.json({ error: subErr.message }, { status: 500 });
-
-    const current = sub?.monthly_price ?? 0; // assumes cents
-    const offer = Math.max(0, current - 1000); // $10 off
-    updates.monthly_price = offer;             // <-- write to the SAME column
-    // If your column is actually `price_cents`, change both lines accordingly.
+    const current = sub.monthly_price ?? 0;
+    updates.monthly_price = Math.max(0, current - 1000);
   }
 
   const { error: updErr } = await sb
@@ -77,5 +95,6 @@ export async function POST(req: Request) {
 
   if (updErr) return Response.json({ error: updErr.message }, { status: 500 });
 
+  // Don’t echo user-provided text back 
   return Response.json({ status: updates.status as 'active' | 'cancelled' });
 }

@@ -78,7 +78,7 @@ export default function OfferModal({
                     </div>
 
                     {/* Divider */}
-                    <div className="-mx-6 my-4 md:mx-0">
+                    <div className="hidden -mx-6 my-10 md:mx-0">
                         <div className="hidden h-px w-full bg-slate-200 md:block" />
                     </div>
 

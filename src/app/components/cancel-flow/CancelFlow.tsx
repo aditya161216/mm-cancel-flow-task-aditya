@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { AssignResp, DecideResp, StartResp } from './types'
+import { AssignResp, DecideResp, StartResp } from './types';
+
 import IntroModal from './IntroModal';
 import OfferModal from './not-yet-flow/OfferModal';
 import DeclinedSurveyModal from './not-yet-flow/DeclinedSurveyModal';
@@ -12,8 +13,7 @@ import JobCongratsModal from './yes-flow/JobCongratsModal';
 import JobImproveModal from './yes-flow/JobImproveModal';
 import VisaStepModal from './yes-flow/VisaStepModal';
 import JobDoneModal from './yes-flow/JobDoneModal';
-
-
+import { CSRF_HEADER } from '../../api/csrf/constants'
 
 const REASON_LABELS = {
     too_expensive: 'Too expensive',
@@ -34,8 +34,9 @@ export default function CancelFlow({
 }) {
     const [loading, setLoading] = useState(false);
     const [start, setStart] = useState<StartResp | null>(null);
+    const [csrf, setCsrf] = useState<string>('');
 
-    // Which modal is currently visible
+    // which modal
     const [showIntro, setShowIntro] = useState(false);
     const [showOffer, setShowOffer] = useState(false);
     const [showDeclinedSurvey, setShowDeclinedSurvey] = useState(false);
@@ -46,7 +47,7 @@ export default function CancelFlow({
     const [offerCents, setOfferCents] = useState<number | null>(null);
     const [reason, setReason] = useState('');
 
-    // yes branch states
+    // yes branch
     const [showJobCongrats, setShowJobCongrats] = useState(false);
     const [showJobImprove, setShowJobImprove] = useState(false);
     const [showVisaStep, setShowVisaStep] = useState(false);
@@ -64,56 +65,84 @@ export default function CancelFlow({
         [offerCents, start]
     );
 
-    // Kick off start flow on open
+    // Helper to attach CSRF + defaults to every fetch
+    const withCsrf = (csrf: string, init: RequestInit = {}): RequestInit => ({
+        cache: 'no-store',
+        credentials: 'same-origin',
+        ...init,
+        headers: {
+            'Content-Type': 'application/json',
+            ...(init.headers || {}),
+            ...(csrf ? { [CSRF_HEADER]: csrf } : {}),
+        },
+    });
+
+    // Kick off when opened: mint CSRF then call /start
     useEffect(() => {
+        let alive = true;
+        const ac = new AbortController();   // controls DOM requests
         if (!open) return;
 
+        // reset all UI state
         setShowIntro(false);
         setShowOffer(false);
         setShowDeclinedSurvey(false);
         setShowAccepted(false);
         setShowCancelled(false);
+        setShowReasons(false);
         setStart(null);
         setReason('');
         setOfferCents(null);
         setToast({ message: '', visible: false });
-        setShowReasons(false)
 
-        let cancelled = false;
         (async () => {
-            setLoading(true);
-            const res = await fetch('/api/cancel/start', { method: 'POST' });
+            try {
+                // 1) ensure CSRF cookie + token first
+                const r = await fetch('/api/csrf', { method: 'GET', credentials: 'same-origin', signal: ac.signal });
+                if (!r.ok) throw new Error('csrf');
+                const { token } = await r.json();
+                setCsrf(token);
 
-            if (res.status === 404) {
+                // 2) start flow (now that token exists)
+                setLoading(true);
+                const res = await fetch('/api/cancel/start', withCsrf(token, { method: 'POST', signal: ac.signal }));
                 setLoading(false);
-                if (cancelled) return;
-                setToast({ message: "You don't have an active subscription", visible: true });
-                setTimeout(() => {
-                    setToast({ message: '', visible: false });
-                    onClose();
-                }, 1500);
-                return;
-            }
-            if (!res.ok) {
+
+                if (res.status === 404) {
+                    if (!alive) return;
+                    setToast({ message: "You don't have an active subscription", visible: true });
+                    setTimeout(() => {
+                        setToast({ message: '', visible: false });
+                        onClose();
+                    }, 1500);
+                    return;
+                }
+                if (!res.ok) {
+                    if (!alive) return;
+                    setToast({ message: 'Something went wrong. Please try again.', visible: true });
+                    setTimeout(() => {
+                        setToast({ message: '', visible: false });
+                        onClose();
+                    }, 1500);
+                    return;
+                }
+
+                const data = (await res.json()) as StartResp;
+                if (!alive) return;
+                setStart(data);
+                setShowIntro(true); // only show once data is ready
+            } catch (e) {
+                if (ac.signal.aborted) return;
+                if (!alive) return;
                 setLoading(false);
-                if (cancelled) return;
                 setToast({ message: 'Something went wrong. Please try again.', visible: true });
-                setTimeout(() => {
-                    setToast({ message: '', visible: false });
-                    onClose();
-                }, 1500);
-                return;
+                setTimeout(() => setToast({ message: '', visible: false }), 1800);
             }
-
-            const data = (await res.json()) as StartResp;
-            if (cancelled) return;
-            setStart(data);
-            setLoading(false);
-            setShowIntro(true);
         })();
 
         return () => {
-            cancelled = true;
+            alive = false;
+            ac.abort();
         };
     }, [open]);
 
@@ -127,13 +156,20 @@ export default function CancelFlow({
             return start.variant;
         }
         setLoading(true);
-        const res = await fetch('/api/cancel/assign', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ subscriptionId: start.subscriptionId }),
-        });
+        // const res = await fetch(
+        //     '/api/cancel/assign',
+        //     withCsrf({
+        //         method: 'POST',
+        //         body: JSON.stringify({ subscriptionId: start.subscriptionId }),
+        //     })
+        // );
+        const res = await fetch(
+            '/api/cancel/assign',
+            withCsrf(csrf, { method: 'POST', body: JSON.stringify({ subscriptionId: start.subscriptionId }) })
+        );
         setLoading(false);
         if (!res.ok) return null;
+
         const data = (await res.json()) as AssignResp;
         setStart({
             subscriptionId: start.subscriptionId,
@@ -151,20 +187,33 @@ export default function CancelFlow({
         else setShowDeclinedSurvey(true);
     };
 
+    // Not-yet branch: accept/decline downsell
     const decideNoFlow = async (accepted: boolean, reasonOverride?: string) => {
         if (!start) return;
         setLoading(true);
 
-        const res = await fetch('/api/cancel/decide', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                subscriptionId: start.subscriptionId,
-                accepted,
-                // use override if provided; otherwise fall back to state
-                reason: accepted ? 'still_looking' : (reasonOverride ?? reason),
-            }),
-        });
+        // const res = await fetch(
+        //     '/api/cancel/decide',
+        //     withCsrf({
+        //         method: 'POST',
+        //         body: JSON.stringify({
+        //             subscriptionId: start.subscriptionId,
+        //             accepted,
+        //             reason: accepted ? 'still_looking' : (reasonOverride ?? reason),
+        //         }),
+        //     })
+        // );
+        const res = await fetch(
+            '/api/cancel/decide',
+            withCsrf(csrf, {
+                method: 'POST',
+                body: JSON.stringify({
+                    subscriptionId: start.subscriptionId,
+                    accepted,
+                    reason: accepted ? 'still_looking' : (reasonOverride ?? reason),
+                }),
+            })
+        );
 
         setLoading(false);
         if (!res.ok) {
@@ -174,28 +223,32 @@ export default function CancelFlow({
         }
         const { status } = (await res.json()) as DecideResp;
 
+        // Now flip the UI so there's no blank gap
         setShowIntro(false);
         setShowOffer(false);
         setShowDeclinedSurvey(false);
-        setShowReasons(false)
+        setShowReasons(false);
 
         if (status === 'active') setShowAccepted(true);
         else setShowCancelled(true);
     };
 
+    // Yes branch: found job; persist reason then finish the wizard
     const decideYesFlow = async (reasonText: string) => {
         if (!start) return false;
         try {
             setLoading(true);
-            const res = await fetch('/api/cancel/decide', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    subscriptionId: start.subscriptionId,
-                    accepted: false,
-                    reason: reasonText,
-                }),
-            });
+            const res = await fetch(
+                '/api/cancel/decide',
+                withCsrf(csrf, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        subscriptionId: start.subscriptionId,
+                        accepted: false,
+                        reason: reasonText,
+                    }),
+                })
+            );
             setLoading(false);
             if (!res.ok) {
                 setToast({ message: 'Something went wrong. Please try again.', visible: true });
@@ -235,8 +288,8 @@ export default function CancelFlow({
                     open={showOffer}
                     onClose={onClose}
                     onBack={() => {
-                        setShowIntro(true)
-                        setShowOffer(false)
+                        setShowIntro(true);
+                        setShowOffer(false);
                     }}
                     priceCents={start.priceCents}
                     offerCents={computedOffer}
@@ -253,11 +306,16 @@ export default function CancelFlow({
                     open={showDeclinedSurvey}
                     onClose={onClose}
                     onBack={() => {
-                        if (start?.variant === 'B') { setShowDeclinedSurvey(false); setShowOffer(true); }
-                        else { setShowDeclinedSurvey(false); setShowIntro(true); }
+                        if (start?.variant === 'B') {
+                            setShowDeclinedSurvey(false);
+                            setShowOffer(true);
+                        } else {
+                            setShowDeclinedSurvey(false);
+                            setShowIntro(true);
+                        }
                     }}
                     reason={reason}
-                    onReason={() => { /* ignore */ }}
+                    onReason={() => { }}
                     priceCents={start.priceCents}
                     offerCents={offerCents}
                     onAcceptOffer={() => decideNoFlow(true)}
@@ -265,8 +323,6 @@ export default function CancelFlow({
                         setShowDeclinedSurvey(false);
                         setShowReasons(true);
                     }}
-
-                    // onConfirmCancel={() => decide(false)}
                     stepCurrent={start.variant === 'B' ? 2 : 1}
                     stepTotal={start.variant === 'B' ? 3 : 2}
                 />
@@ -276,19 +332,24 @@ export default function CancelFlow({
                 <CancelReasonModal
                     open={showReasons}
                     onClose={onClose}
-                    onBack={() => { setShowReasons(false); setShowDeclinedSurvey(true); }}
+                    onBack={() => {
+                        setShowReasons(false);
+                        setShowDeclinedSurvey(true);
+                    }}
                     priceCents={start.priceCents}
                     offerCents={offerCents}
                     stepCurrent={start.variant === 'B' ? 3 : 2}
                     stepTotal={start.variant === 'B' ? 3 : 2}
-                    onAcceptOffer={() => { void decideNoFlow(true); }}
+                    onAcceptOffer={() => {
+                        void decideNoFlow(true);
+                    }}
                     onComplete={(payload) => {
-                        const label = REASON_LABELS[(payload.type as ReasonKey)] ?? payload.type;
+                        const label = REASON_LABELS[payload.type as ReasonKey] ?? (payload.type as string);
                         const explanation = payload.text?.trim();
                         const finalReason = explanation ? `${label} - ${explanation}` : label;
                         setReason(finalReason);
-                        setShowReasons(false);      // hide this step immediately
-                        void decideNoFlow(false, finalReason);         // finish flow
+                        setShowReasons(false);
+                        void decideNoFlow(false, finalReason);
                     }}
                 />
             )}
@@ -299,7 +360,10 @@ export default function CancelFlow({
             <JobCongratsModal
                 open={showJobCongrats}
                 onClose={onClose}
-                onBack={() => { setShowJobCongrats(false); setShowIntro(true); }}
+                onBack={() => {
+                    setShowJobCongrats(false);
+                    setShowIntro(true);
+                }}
                 onContinue={(found) => {
                     setFoundWithMM(found);
                     setShowJobCongrats(false);
@@ -312,8 +376,14 @@ export default function CancelFlow({
             <JobImproveModal
                 open={showJobImprove}
                 onClose={onClose}
-                onBack={() => { setShowJobImprove(false); setShowJobCongrats(true); }}
-                onContinue={() => { setShowJobImprove(false); setShowVisaStep(true); }}
+                onBack={() => {
+                    setShowJobImprove(false);
+                    setShowJobCongrats(true);
+                }}
+                onContinue={() => {
+                    setShowJobImprove(false);
+                    setShowVisaStep(true);
+                }}
                 stepCurrent={2}
                 stepTotal={3}
             />
@@ -322,7 +392,10 @@ export default function CancelFlow({
                 <VisaStepModal
                     open={showVisaStep}
                     onClose={onClose}
-                    onBack={() => { setShowVisaStep(false); setShowJobImprove(true); }}
+                    onBack={() => {
+                        setShowVisaStep(false);
+                        setShowJobImprove(true);
+                    }}
                     foundWithMM={foundWithMM}
                     onComplete={async (needsHelp) => {
                         setNeedsVisaHelp(needsHelp);
@@ -340,7 +413,6 @@ export default function CancelFlow({
             <JobDoneModal
                 open={showJobDone}
                 onClose={() => {
-                    // close the whole flow
                     setShowJobDone(false);
                     onClose();
                 }}

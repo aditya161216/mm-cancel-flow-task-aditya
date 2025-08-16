@@ -53,6 +53,33 @@ CREATE POLICY "Users can insert own cancellations" ON cancellations
 CREATE POLICY "Users can view own cancellations" ON cancellations
   FOR SELECT USING (auth.uid() = user_id);
 
+-- Additional RLS policies
+-- Replace the current insert/select policies on cancellations
+DROP POLICY IF EXISTS "Users can insert own cancellations" ON cancellations;
+DROP POLICY IF EXISTS "Users can view own cancellations"   ON cancellations;
+
+CREATE POLICY "Insert cancellation only for own subscription"
+ON cancellations
+FOR INSERT
+WITH CHECK (
+  auth.uid() = user_id
+  AND EXISTS (
+    SELECT 1 FROM subscriptions s
+    WHERE s.id = subscription_id AND s.user_id = auth.uid()
+  )
+);
+
+CREATE POLICY "Select own cancellations (via subscription ownership)"
+ON cancellations
+FOR SELECT
+USING (
+  auth.uid() = user_id
+  AND EXISTS (
+    SELECT 1 FROM subscriptions s
+    WHERE s.id = subscription_id AND s.user_id = auth.uid()
+  )
+);
+
 -- Seed data
 INSERT INTO users (id, email) VALUES
   ('550e8400-e29b-41d4-a716-446655440001', 'user1@example.com'),
