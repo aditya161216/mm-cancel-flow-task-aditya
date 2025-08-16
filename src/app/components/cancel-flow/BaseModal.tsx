@@ -15,7 +15,7 @@ export default function BaseModal({
     title: string;
     onClose: () => void;
     children: React.ReactNode;
-    progress?: { current: number; total: number };
+    progress?: { current: number; total: number; done?: boolean };
     onBack?: () => void;
 }) {
     if (!open) return null;
@@ -52,7 +52,7 @@ export default function BaseModal({
                                 <div className="mt-1 flex items-center gap-2">
                                     <StepDots current={progress.current} total={progress.total} />
                                     <span className="text-[12px] text-slate-400">
-                                        Step {progress.current} of {progress.total}
+                                        {progress.done ? 'Completed' : `Step ${progress.current} of ${progress.total}`}
                                     </span>
                                 </div>
                             )}

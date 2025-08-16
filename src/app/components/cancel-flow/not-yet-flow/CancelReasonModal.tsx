@@ -3,8 +3,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import BaseModal from './BaseModal';
-import { formatCents } from './format';
+import BaseModal from '../BaseModal';
+import { formatCents } from '../format';
 
 const HERO_SRC = '/empire-state.jpg';
 
@@ -197,7 +197,7 @@ export default function CancelReasonModal({
                             onClick={onAcceptOffer}
                             className="w-full rounded-xl bg-emerald-500 py-3 font-medium text-white hover:bg-emerald-600"
                         >
-                            Get 50% off | {offer}
+                            Get $10 off | {offer}
                             <span className="ml-2 text-sm text-slate-300 line-through">
                                 {formatCents(priceCents)}
                             </span>
@@ -219,7 +219,7 @@ export default function CancelReasonModal({
 
                 {/* RIGHT image */}
                 <div className="hidden overflow-hidden rounded-[14px] border border-slate-200 md:block">
-                    <div className="relative h-[360px] w-full">
+                    <div className="relative h-full min-h-[220px] w-full">
                         <Image
                             src={HERO_SRC}
                             alt="New York skyline"

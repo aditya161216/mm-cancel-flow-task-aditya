@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import BaseModal from './BaseModal';
+import BaseModal from '../BaseModal';
 
 const HERO_SRC = '/empire-state.jpg';
 
@@ -30,7 +30,7 @@ export default function AcceptedModal({
                     </button>
                 </div>
                 <div className="hidden overflow-hidden rounded-[14px] border border-slate-200 md:block">
-                    <div className="relative h-[360px] w-full">
+                    <div className="relative h-full min-h-[220px] w-full">
                         <Image src={HERO_SRC} alt="" fill sizes="(min-width: 768px) 440px, 100vw" className="object-cover" />
                     </div>
                 </div>

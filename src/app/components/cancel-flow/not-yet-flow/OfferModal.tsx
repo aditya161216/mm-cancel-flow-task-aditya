@@ -1,8 +1,8 @@
 'use client';
 
 import Image from 'next/image';
-import BaseModal from './BaseModal';
-import { formatCents } from './format';
+import BaseModal from '../BaseModal';
+import { formatCents } from '../format';
 import { useEffect } from 'react';
 
 const HERO_SRC = '/empire-state.jpg';
@@ -35,7 +35,7 @@ export default function OfferModal({
             <div className="grid gap-8 px-6 pb-6 pt-6 md:grid-cols-[1fr_440px] md:gap-10 md:px-8 md:pb-8">
                 <div className="space-y-4">
                     <h2 className="text-[28px] font-semibold leading-[1.15] text-slate-900 md:text-[32px]">
-                        We built this to help you land the job — here’s 50% off until you do.
+                        We built this to help you land the job — here’s $10 off until you do.
                     </h2>
 
                     <div className="rounded-2xl border border-violet-200 bg-violet-50 p-0.5">
@@ -60,7 +60,7 @@ export default function OfferModal({
                             onClick={onAccept}
                             className="flex-1 rounded-xl bg-emerald-500 py-3 font-medium text-white hover:bg-emerald-600"
                         >
-                            Get 50% off
+                            Get $10 off
                         </button>
                         <button
                             onClick={onDecline}
@@ -72,7 +72,7 @@ export default function OfferModal({
                 </div>
 
                 <div className="hidden overflow-hidden rounded-[14px] border border-slate-200 md:block">
-                    <div className="relative h-[360px] w-full">
+                    <div className="relative h-full min-h-[220px] w-full">
                         <Image src={HERO_SRC} alt="" fill sizes="(min-width: 768px) 440px, 100vw" className="object-cover" />
                     </div>
                 </div>

@@ -3,11 +3,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AssignResp, DecideResp, StartResp } from './types'
 import IntroModal from './IntroModal';
-import OfferModal from './OfferModal';
-import DeclinedSurveyModal from './DeclinedSurveyModal';
-import AcceptedModal from './AcceptedModal';
-import CancelReasonModal from './CancelReasonModal';
-import CancelledModal from './CancelledModal';
+import OfferModal from './not-yet-flow/OfferModal';
+import DeclinedSurveyModal from './not-yet-flow/DeclinedSurveyModal';
+import AcceptedModal from './not-yet-flow/AcceptedModal';
+import CancelReasonModal from './not-yet-flow/CancelReasonModal';
+import CancelledModal from './not-yet-flow/CancelledModal';
+import JobCongratsModal from './yes-flow/JobCongratsModal';
+import JobImproveModal from './yes-flow/JobImproveModal';
+import VisaStepModal from './yes-flow/VisaStepModal';
+import JobDoneModal from './yes-flow/JobDoneModal';
+
 
 
 const REASON_LABELS = {
@@ -40,6 +45,14 @@ export default function CancelFlow({
 
     const [offerCents, setOfferCents] = useState<number | null>(null);
     const [reason, setReason] = useState('');
+
+    // yes branch states
+    const [showJobCongrats, setShowJobCongrats] = useState(false);
+    const [showJobImprove, setShowJobImprove] = useState(false);
+    const [showVisaStep, setShowVisaStep] = useState(false);
+    const [showJobDone, setShowJobDone] = useState(false);
+    const [foundWithMM, setFoundWithMM] = useState<boolean | null>(null);
+    const [needsVisaHelp, setNeedsVisaHelp] = useState<boolean>(false);
 
     const [toast, setToast] = useState<{ message: string; visible: boolean }>({
         message: '',
@@ -92,7 +105,7 @@ export default function CancelFlow({
                 setTimeout(() => {
                     setToast({ message: '', visible: false });
                     onClose();
-                }, 2200);
+                }, 1500);
                 return;
             }
 
@@ -106,7 +119,7 @@ export default function CancelFlow({
         return () => {
             cancelled = true;
         };
-    }, [open, onClose]);
+    }, [open]);
 
     // Assign variant only when user chooses "Not yet"
     const ensureVariant = async () => {
@@ -185,7 +198,10 @@ export default function CancelFlow({
                 open={showIntro}
                 loading={loading}
                 onClose={onClose}
-                onYesFoundJob={onClose /* wire up later for the 'found job' branch */}
+                onYesFoundJob={() => {
+                    setShowIntro(false);
+                    setShowJobCongrats(true);
+                }}
                 onNotYet={handleNotYet}
             />
 
@@ -254,6 +270,54 @@ export default function CancelFlow({
 
             <AcceptedModal open={showAccepted} onClose={onClose} />
             <CancelledModal open={showCancelled} onClose={onClose} />
+
+            <JobCongratsModal
+                open={showJobCongrats}
+                onClose={onClose}
+                onBack={() => { setShowJobCongrats(false); setShowIntro(true); }}
+                onContinue={(found) => {
+                    setFoundWithMM(found);
+                    setShowJobCongrats(false);
+                    setShowJobImprove(true);
+                }}
+                stepCurrent={1}
+                stepTotal={3}
+            />
+
+            <JobImproveModal
+                open={showJobImprove}
+                onClose={onClose}
+                onBack={() => { setShowJobImprove(false); setShowJobCongrats(true); }}
+                onContinue={() => { setShowJobImprove(false); setShowVisaStep(true); }}
+                stepCurrent={2}
+                stepTotal={3}
+            />
+
+            {foundWithMM !== null && (
+                <VisaStepModal
+                    open={showVisaStep}
+                    onClose={onClose}
+                    onBack={() => { setShowVisaStep(false); setShowJobImprove(true); }}
+                    foundWithMM={foundWithMM}
+                    onComplete={(needsHelp) => {
+                        setNeedsVisaHelp(needsHelp);
+                        setShowVisaStep(false);
+                        setShowJobDone(true);
+                    }}
+                    stepCurrent={3}
+                    stepTotal={3}
+                />
+            )}
+
+            <JobDoneModal
+                open={showJobDone}
+                onClose={() => {
+                    // close the whole flow
+                    setShowJobDone(false);
+                    onClose();
+                }}
+                needsVisaHelp={needsVisaHelp}
+            />
         </>
     );
 }

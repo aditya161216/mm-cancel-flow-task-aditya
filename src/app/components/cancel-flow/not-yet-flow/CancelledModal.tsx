@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import BaseModal from './BaseModal';
+import BaseModal from '../BaseModal';
 
 export default function CancelledModal({
     open,
