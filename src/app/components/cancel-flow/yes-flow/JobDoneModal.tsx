@@ -3,7 +3,6 @@
 import Image from 'next/image';
 import BaseModal from '../BaseModal';
 
-
 const HERO_SRC = '/empire-state.jpg';
 const avatarSrc = '/mihailo-profile.jpeg';
 
@@ -23,10 +22,26 @@ export default function JobDoneModal({
             title="Subscription Cancelled"
             progress={{ current: 3, total: 3, done: true }}
         >
-            {/* Equal-height columns, button pinned bottom-left */}
             <div className="grid items-stretch gap-8 px-6 pb-6 pt-6 md:grid-cols-[1fr_440px] md:gap-10 md:px-8 md:pb-8">
                 {/* LEFT */}
                 <div className="flex flex-col">
+                    {/* Mobile hero only when no visa help is needed */}
+                    {!needsVisaHelp && (
+                        <div className="md:hidden overflow-hidden rounded-[14px] border border-slate-200 mb-4">
+                            <div className="relative w-full aspect-[16/9]">
+                                <Image
+                                    src={HERO_SRC}
+                                    alt="New York skyline"
+                                    fill
+                                    sizes="100vw"
+                                    className="object-cover"
+                                    priority
+                                />
+                                <div className="pointer-events-none absolute inset-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]" />
+                            </div>
+                        </div>
+                    )}
+
                     <div className="space-y-4">
                         {needsVisaHelp ? (
                             <>
@@ -51,17 +66,14 @@ export default function JobDoneModal({
                                                 href="mailto:mihailo@migratemate.co"
                                                 className="text-[12px] text-slate-500 hover:underline"
                                             >
-                                                {`<mihailo@migratemate.co>`}
+                                                {'<mihailo@migratemate.co>'}
                                             </a>
                                         </div>
                                     </div>
 
                                     <div className="mt-3 space-y-2 text-[13px] leading-6 text-slate-700">
                                         <p className="font-semibold">I’ll be reaching out soon to help with the visa side of things.</p>
-                                        <p>
-                                            We’ve got your back, whether it’s questions, paperwork, or just figuring out
-                                            your options.
-                                        </p>
+                                        <p>We’ve got your back, whether it’s questions, paperwork, or just figuring out your options.</p>
                                         <p>
                                             Keep an eye on your inbox, I’ll be in touch <span className="underline">shortly</span>.
                                         </p>
@@ -74,8 +86,7 @@ export default function JobDoneModal({
                                     All done, your cancellation’s been processed.
                                 </h2>
                                 <p className="text-[15px] text-slate-700 font-semibold">
-                                    We’re stoked to hear you’ve landed a job and sorted your visa. Big congrats from
-                                    the team.🙌
+                                    We’re stoked to hear you’ve landed a job and sorted your visa. Big congrats from the team.🙌
                                 </p>
                             </>
                         )}
@@ -97,7 +108,7 @@ export default function JobDoneModal({
                     </div>
                 </div>
 
-                {/* RIGHT image fills column height */}
+                {/* RIGHT image fills column height (md+) */}
                 <div className="hidden overflow-hidden rounded-[14px] border border-slate-200 md:block">
                     <div className="relative h-full min-h-[220px] w-full">
                         <Image

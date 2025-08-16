@@ -1,4 +1,3 @@
-// ReasonModal.tsx
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
@@ -65,11 +64,16 @@ export default function CancelReasonModal({
         [offerCents, priceCents]
     );
 
-    // validation flags
+    // ---- Validation ----
     const optionChosen = !!selected;
-    const needsTextarea = !!selected && selected !== 'too_expensive';
-    const tooShort = needsTextarea && text.trim().length < 25;
-    const formValid = optionChosen && (!needsTextarea || !tooShort);
+
+    const needsTextarea = selected !== null && selected !== 'too_expensive';
+    const textOk = !needsTextarea || text.trim().length >= 25;
+
+    const needsPrice = selected === 'too_expensive';
+    const priceOk = !needsPrice || price.trim().length > 0; // simple required; tighten later if needed
+
+    const formValid = optionChosen && textOk && priceOk;
 
     const submit = () => {
         if (!formValid) {
@@ -79,7 +83,7 @@ export default function CancelReasonModal({
         onComplete(
             selected === 'too_expensive'
                 ? { type: selected, text: price.trim() }
-                : { type: selected, text: text.trim() }
+                : { type: selected!, text: text.trim() }
         );
     };
 
@@ -137,12 +141,21 @@ export default function CancelReasonModal({
                                         </span>
                                         <input
                                             inputMode="decimal"
-                                            className="w-full rounded-lg border border-slate-300 bg-white pl-7 pr-3 py-2.5 outline-none focus:ring-2 focus:ring-[#8952fc]/30"
+                                            className={[
+                                                'w-full rounded-lg border bg-white pl-7 pr-3 py-2.5 outline-none', 'border-slate-300 focus:ring-2 focus:ring-[#8952fc]/30'
+                                                // priceOk
+                                                //     ? 'border-slate-300 focus:ring-2 focus:ring-[#8952fc]/30'
+                                                //     : 'border-red-400 focus:ring-2 focus:ring-red-200',
+                                            ].join(' ')}
                                             value={price}
                                             onChange={(e) => setPrice(e.target.value)}
                                             placeholder=""
+                                            aria-invalid={showErrors && !priceOk}
                                         />
                                     </div>
+                                    {showErrors && !priceOk && (
+                                        <div className="mt-2 text-[12px] text-red-600">This field is required.</div>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="max-w-[620px]">
@@ -150,8 +163,8 @@ export default function CancelReasonModal({
                                         {PROMPTS[selected]}
                                     </label>
 
-                                    {/* ONLY this line should turn red when under 25 chars after submit */}
-                                    {showErrors && tooShort && (
+                                    {/* ONLY this line turns red when under 25 chars after submit */}
+                                    {showErrors && !textOk && (
                                         <div className="mb-2 text-[13px] text-red-600">
                                             Please enter at least 25 characters so we can understand your feedback
                                             <span className="ml-0.5">*</span>
@@ -165,6 +178,7 @@ export default function CancelReasonModal({
                                             onChange={(e) => setText(e.target.value)}
                                             placeholder="Enter reason here..."
                                             className="w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-[#8952fc]/30"
+                                            aria-invalid={showErrors && !textOk}
                                         />
                                         <div className="absolute bottom-2 right-3 text-[11px] text-slate-400">
                                             Min 25 characters ({text.trim().length}/25)

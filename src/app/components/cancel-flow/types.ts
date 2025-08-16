@@ -12,6 +12,6 @@ export type AssignResp = {
 
 export type DecideResp = { status: 'active' | 'cancelled' };
 
-export function formatCents(c: number) {
-  return `$${(c / 100).toFixed(2)}`;
-}
+// export function formatCents(c: number) {
+//   return `$${(c / 100).toFixed(2)}`;
+// }

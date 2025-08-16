@@ -10,17 +10,32 @@ const HERO_SRC = '/empire-state.jpg';
 export default function AcceptedModal({
     open,
     onClose,
-    offer
+    offer,
 }: {
     open: boolean;
     onClose: () => void;
-    offer: number
+    offer: number;
 }) {
     return (
-        <BaseModal open={open} title="Subscription" onClose={onClose}>
+        <BaseModal open={open} title="Subscription Continued" onClose={onClose}>
             <div className="grid items-stretch gap-8 px-6 pb-6 pt-6 md:grid-cols-[1fr_440px] md:gap-10 md:px-8 md:pb-8">
                 {/* LEFT */}
                 <div className="flex flex-col">
+                    {/* Mobile hero (shown only on <md) */}
+                    <div className="md:hidden overflow-hidden rounded-[14px] border border-slate-200 mb-4">
+                        <div className="relative w-full aspect-[16/9]">
+                            <Image
+                                src={HERO_SRC}
+                                alt="New York skyline"
+                                fill
+                                sizes="100vw"
+                                className="object-cover"
+                                priority
+                            />
+                            <div className="pointer-events-none absolute inset-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]" />
+                        </div>
+                    </div>
+
                     <div className="space-y-4">
                         <h2 className="text-[30px] md:text-[34px] font-semibold leading-[1.15] text-slate-900">
                             Great choice, mate!
@@ -38,7 +53,8 @@ export default function AcceptedModal({
                         <div className="space-y-1 text-[15px] text-slate-600">
                             <p>You’ve got XX days left on your current plan.</p>
                             <p>
-                                Starting from XX date, your monthly payment will be <strong>{formatCents(offer)}</strong>.
+                                Starting from XX date, your monthly payment will be{' '}
+                                <strong>{formatCents(offer)}</strong>.
                             </p>
                             <p className="mt-2 text-[13px] italic text-slate-400">
                                 You can cancel anytime before then.
@@ -48,6 +64,11 @@ export default function AcceptedModal({
 
                     {/* Divider */}
                     <div className="-mx-6 my-4 md:mx-0">
+                        <div className="hidden h-px w-full bg-slate-200 md:block" />
+                    </div>
+
+                    <div className="-mx-6 my-2 md:mx-0">
+                        <div className="block h-[10px] w-full border-t border-slate-200 bg-gradient-to-b from-slate-200/60 to-transparent md:hidden" />
                         <div className="hidden h-px w-full bg-slate-200 md:block" />
                     </div>
 
@@ -62,7 +83,7 @@ export default function AcceptedModal({
                     </div>
                 </div>
 
-                {/* RIGHT image – fills column height */}
+                {/* RIGHT image – fills column height (md+) */}
                 <div className="hidden overflow-hidden rounded-[14px] border border-slate-200 md:block">
                     <div className="relative h-full min-h-[220px] w-full">
                         <Image

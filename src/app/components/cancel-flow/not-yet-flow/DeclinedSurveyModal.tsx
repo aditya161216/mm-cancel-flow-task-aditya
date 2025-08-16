@@ -91,7 +91,12 @@ export default function DeclinedSurveyModal({
                 {/* LEFT */}
                 <div className="space-y-5">
                     <h2 className={headline}>
-                        Help us understand how you were using Migrate&nbsp;Mate.
+                        <span className="hidden md:inline">
+                            Help us understand how you were using Migrate&nbsp;Mate.
+                        </span>
+                        <span className="md:hidden">
+                            What’s the main reason for cancelling?
+                        </span>
                     </h2>
 
                     {/* error helper copy */}

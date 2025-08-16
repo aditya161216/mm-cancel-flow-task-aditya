@@ -79,10 +79,8 @@ export default function JobImproveModal({
                         </div>
                     </div>
 
-                    <div className="-mx-6 my-1 md:mx-0">
-                        <div className="block h-[10px] w-full border-t border-slate-200 bg-gradient-to-b from-slate-200/60 to-transparent md:hidden" />
-                        <div className="hidden h-px w-full bg-slate-200 md:block" />
-                    </div>
+                    {/* spacer only — removed visible divider */}
+                    <div className="h-2" />
 
                     {/* keep clickable; style reflects validity */}
                     <button

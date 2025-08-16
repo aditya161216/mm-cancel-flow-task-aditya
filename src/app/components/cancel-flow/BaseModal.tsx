@@ -31,7 +31,11 @@ export default function BaseModal({
             >
                 {/* MOBILE HEADER: Back, Title, Stepper all on the left; Close on the right */}
                 <div className="md:hidden px-4 pt-2 pb-2">
-                    <div className="flex items-start justify-between">
+                    {/* <div className="flex items-start justify-between"> */}
+                    <div
+                        className={`flex justify-between ${onBack || progress ? 'items-start' : 'items-center'
+                            }`}
+                    >
                         <div className="flex-1">
                             {onBack && (
                                 <button

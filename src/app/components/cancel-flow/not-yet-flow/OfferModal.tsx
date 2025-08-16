@@ -38,7 +38,7 @@ export default function OfferModal({
                         <h2 className="text-[28px] md:text-[32px] font-semibold leading-[1.15] text-slate-900">
                             We built this to help you land the job, this makes it a little easier.
                         </h2>
-                        <p className="text-[15px] font-medium text-slate-600">
+                        <p className="hidden md:block text-[15px] font-medium text-slate-600">
                             We’ve been there and we’re here to help you.
                         </p>
 
@@ -79,6 +79,11 @@ export default function OfferModal({
 
                     {/* Divider */}
                     <div className="-mx-6 my-4 md:mx-0">
+                        <div className="hidden h-px w-full bg-slate-200 md:block" />
+                    </div>
+
+                    <div className="-mx-6 my-2 md:mx-0">
+                        <div className="block h-[10px] w-full border-t border-slate-200 bg-gradient-to-b from-slate-200/60 to-transparent md:hidden" />
                         <div className="hidden h-px w-full bg-slate-200 md:block" />
                     </div>
 
