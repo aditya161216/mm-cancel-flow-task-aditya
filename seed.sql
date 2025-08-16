@@ -32,6 +32,22 @@ CREATE TABLE IF NOT EXISTS cancellations (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- extend cancellations table
+ALTER TABLE cancellations
+  ADD COLUMN IF NOT EXISTS path            TEXT CHECK (path IN ('not_yet','found_job')),
+  ADD COLUMN IF NOT EXISTS reason_key      TEXT CHECK (reason_key IN ('too_expensive','not_helpful','not_enough','not_moving','other')),
+  ADD COLUMN IF NOT EXISTS reason_text     TEXT,          -- freeform explanation if user cancels
+  ADD COLUMN IF NOT EXISTS feedback_text   TEXT,          -- “what could we improve?” on found-job flow
+  ADD COLUMN IF NOT EXISTS found_with_mm   BOOLEAN,       -- found job via Migrate Mate?
+  ADD COLUMN IF NOT EXISTS has_lawyer      BOOLEAN,       -- company providing immigration lawyer?
+  ADD COLUMN IF NOT EXISTS visa_type       TEXT CHECK (char_length(visa_type) <= 120),
+  ADD COLUMN IF NOT EXISTS needs_visa_help BOOLEAN;       -- convenience flag
+
+
+-- indexes for optimized performance
+CREATE INDEX IF NOT EXISTS cxl_user_idx ON cancellations (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS cxl_sub_idx  ON cancellations (subscription_id, created_at DESC);
+
 -- Enable Row Level Security
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
@@ -52,6 +68,9 @@ CREATE POLICY "Users can insert own cancellations" ON cancellations
 
 CREATE POLICY "Users can view own cancellations" ON cancellations
   FOR SELECT USING (auth.uid() = user_id);
+
+
+
 
 -- Additional RLS policies
 -- Replace the current insert/select policies on cancellations

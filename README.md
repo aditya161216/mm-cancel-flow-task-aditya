@@ -12,6 +12,8 @@
   - `decide` finalizes (accept downsell or cancel) and—if accepted—updates the price.
 - **Persistence of A/B variant:** Stored in `cancellations.downsell_variant` so a returning user sees the same variant. No client trust.
 - **Defensive DB design:** Service role key is used only server-side. Client never updates subscriptions directly.
+- **Addition of extra fields to Cancellation table:** Original setup was too minimal to capture all the data. Added additional fields to support.
+- **Addition of indexes to Cancellation table:** Allows for fast, efficient lookups as app scales, leading to less latency between modal requests.
 
 ---
 
@@ -25,10 +27,7 @@
    - Rationale: App uses cookie auth patterns; this blocks off-site form posts/XHR.
 
 2. **RLS (Row-Level Security)**
-   - Enabled and **FORCE RLS** on `users`, `subscriptions`, `cancellations`.
    - Select/insert/update policies ensure a user can only see or create cancellation rows **for subscriptions they own** (join-back check).
-   - A trigger prevents changing `user_id`/`subscription_id` on existing cancellation rows.
-   - Client UPDATE on `subscriptions` is **not allowed**; only the server (service role) mutates status/price.
 
 3. **Input validation & sanitation**
    - All POST bodies validated with **Zod** (UUID formats, booleans, max lengths).
