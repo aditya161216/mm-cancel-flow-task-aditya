@@ -56,7 +56,3 @@
   - Analyze conversion lift and guard with sequential testing to stop early if there’s clear harm/benefit.
 
 ---
-
-**Notes**
-- The CSRF names (`mm_csrf`, `x-mm-csrf`) are public constants; secrecy isn’t required—the **unpredictable token** bound to the user is what matters.  
-- The app ships with secure defaults but remains simple enough for a take-home project.
